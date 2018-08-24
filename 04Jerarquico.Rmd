@@ -1,0 +1,410 @@
+
+```{r,echo = FALSE,message = FALSE,warning=FALSE,cache= TRUE,error=FALSE,include = FALSE}
+install.packages("dendextend",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("ggdendro",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("factoextra",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("cluster",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+library("dendextend")
+library("ggdendro")
+library("factoextra")
+library("cluster")
+library("knitr")
+```
+
+# Clústers Jerárquicos
+
+El objetivo general de estos modelos es la de construir agrupamientos ordenados o jerárquicos.
+
+El agrupamiento jerárquico puede ser divivido en dos vertientes
+
+* Algoritmos Aglomerativos: Este es un acercamiento ascendente,  aquí se computan las disimilitudes para hacer las comparaciones efectivas. Cada observación comienza en su propio grupo, en parejas, se agrupan dado algún criterio de distancia mínima,y se forman los grupos. Este proceso se repite de froma iterativa conforme se asciende en la jerarquía hasta que todos los datos terminan agrupados en un solo clúster.
+
+* Algoritmos Divisivos: Este es un acercamiento descendente, todas las observaciones comienzan en un grupo, y las divisiones se realizan en lo que uno baja en la jerarquía.
+
+El acercamiento que utilice en el desarrollo de los clusters jerarquicos es de un algoritmo aglomerativo.
+
+La distancia que utilicé es la distancia de gower que es una medida de distancia para bases de datos que contienen variables mixtas. Este coeficiente de distancia se define como:
+$$\ d_{i,j} =  \frac{1}{p} \sum_{i = 1}^{p} d_{i,j}^{(f)}   $$
+
+* Dónde la función f representa la clase a la que pertenece la variable (categorica, continua, ordinal)
+
+
+* Para parejas datos binarios usa alguna medida apropiada como el índice de Jaccard, que se define como: 
+
+$$ \ d_{i,j} =  \frac{|A \cap B|}{|A \cup B|} $$
+
+* Para parejas de datos continuos usa una distancia redimensionada por el intervalo de la variable definida como
+
+$$\ d_{i,j}^{(f)} = \frac{|x_{i,f} - x_{j,f} |}{R_{f}}  $$
+
+y $\ x_{k,f}$ es el valor del k-ésimo objeto en de la variable f
+y $\ R_{f}$ es el rango de la variable f
+
+* Para parejas de variables ordinales usa rangos normalizados. 
+
+La función liga que utilicé es es la función liga de ward, la cual minimiza la varianza interna entre clústers.
+
+Ward propuso que la pérdida de información que se produce al integrar los distintos individuos en clusters puede medirse a través de la suma total de los cuadrados de las desviaciones entre cada punto (individuo) y la media del cluster en el que se integra.
+De tal forma que para que el proceso de clusterización resulte óptimo, en el sentido de que los grupos formados no distorsionen los datos originales, se desarrolla el siguiente criterio:
+
+En cada paso del análisis, considerar la posibilidad de la unión de cada par de grupos y optar por la fusión de aquellos dos grupos que menos incrementen la suma de los cuadrados de las desviaciones al unirse.
+
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+
+Mode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+```
+
+```{r,echo = FALSE,cache = TRUE,error=FALSE}
+matriz_distancia<-daisy(datos2%>%select(consumo[-1]),metric = "gower")
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+hc_customers_ward<-hclust(matriz_distancia,method = "ward.D")
+cluster_ward<-cutree(hc_customers_ward,h= 7)
+segment_customers_ward<-mutate(datos2,cluster = cluster_ward) 
+tablaclust_ward<-count(segment_customers_ward,cluster)
+```
+
+```{r,echo=FALSE,cache=FALSE,error=FALSE}
+
+kable(tablaclust_ward,caption = "Tabla 3.0 Clústers inducidos por la función liga de ward")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+dend_plot_ward<-as.dendrogram(hc_customers_ward)
+ddata<-dendro_data(dend_plot_ward,type = "rectangle")
+d1<-ggplot(segment(ddata)) +
+  geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) + 
+    labs(title = "Dendograma de clústers", x = "indice", y = "altura")
+
+d1
+   
+```
+
+La gráfica anterior es un dendograma, el cual nos ilustra los arreglos hechos por el algoritmo de agrupamiento. 
+
+Dado que el enfoque utilizado en este proyecto es el aglomerativo (Es tal que se inician con tantos clústers como existan observaciones en el experimento y cada observación es su propio grupo), en el nivel más bajo podemos identificar las observaciones en forma singular. 
+
+En el siguiente paso, se unen las observaciones más cercanas (mas "parecidas") de acuerdo a un criterio de distancia mínima, de tal forma que cada nodo es donde un grupo se fusionó con otro, y la distancia a la que se unen es la distancia máxima que existe entre entidades que forman el grupo.
+
+En los algoritmos jerárquicos, la persona que diseña el análisis es quién decide cual es la distancia máxima permitida entre aglomerados, en este caso, decidí que la distancia máxima permitida fuera de 7 unidades, lo que da paso a la creación de tres clústers.
+
+```{r,echo = FALSE,cache= TRUE,warning=FALSE,cache= TRUE,error=FALSE}
+dend_plot_color<-dend_plot_ward%>%
+   set("branches_k_color", k=3) %>% 
+    set("branches_lwd", c(1,1,1)) %>% 
+      set("branches_lty", c(1,1,1,1,1,1)) %>%  
+        set("labels_colors") %>% set("labels_cex", c(1,1))
+
+d2<-as.ggdend(dend_plot_color)
+
+ggd2<-ggplot(d2)  
+        
+d2
+   
+```
+
+Esta gráfica pone en distintos colores los grupos, de tal forma que los grupos sean evidentes.
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+clusplot(datos2,cluster_ward,stand = TRUE,main = "Representación en 2D de la solución de clústers", color = TRUE, shade = TRUE, labels = 4,cex= 0, lines = 2)
+
+```
+
+Esta figura es una representación gráfica de de las componentes principales del objeto analizado (Las dos variables que más variablidad aportan al análisis). 
+
+En este caso, las componentes principales explican solo un 26.79% de la variabilidad de los puntos, esto era de esperarse ya que el análisis aquí propuesto es de datos de mucho mayor dimensión (cerca de 20 variables son las que utilizamos para agrupar). 
+
+El hecho de que la variabilidad que se explica con la componentes principales sea tan baja, significa que existe muy baja correlación entre las variables explicativas, por lo que el análisis de mayor dimensión es un enfoque correcto. 
+
+## Exploración de las características socio-demográficas por clúster
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+descriptive_socio_ward<-segment_customers_ward%>%
+                    select("cluster",socios[-1])%>%
+                      group_by(cluster)%>%
+                        summarise(moda_sexo = Mode(sexo_jefe), moda_educ = Mode(educa_jefe), mean_edad = mean(edad_jefe), sd_edad = sd(edad_jefe), median_edad = median(edad_jefe),moda_edad = Mode(edad_jefe),mean_integ = mean(tot_integ),sd_integ = sd(tot_integ),median_integ = median(tot_integ),moda_integ = Mode(tot_integ))
+
+datatable(as.data.frame(descriptive_socio_ward), colnames = c("Clúster","Moda en sexo","Moda en educación","Promedio de edad","Desviación estandard edad","Mediana de la edad","Moda de la edad","Promedio de integrantes","Desviación estandard de integrantes","Mediana de integrantes","Moda de integrantes"),caption = "Tabla 3.1 Estadística descriptiva de las variables socio-demográficas",rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE) )
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+
+p1<-ggplot(segment_customers_ward,aes(x = factor(cluster) ,fill = (sexo_jefe))) + 
+  geom_bar(colour="black",position = "dodge")  + 
+    labs(title = "Sexo del jefe de familia por Clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Sexo",labels = c("Mujer","Hombre")) 
+
+p1
+
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+p2<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = educa_jefe)) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Nivel educativo del jefe de familia por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Nivel",labels = c("sin instruccion","primaria incompleta","primaria completa","secundaria incompleta","secundaria completa","preparatoria incompleta","preparatoria completa","profesional incompleta","profesional completa","posgrado")) 
+
+p2
+
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+
+p3<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(tot_integ))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Número de integrantes del hogar por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Integrantes")
+
+p3   
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE} 
+p4<-ggplot(segment_customers_ward,aes(x = factor(cluster), y = edad_jefe)) + 
+   geom_violin(alpha = 0.3) + 
+      geom_boxplot(width = 0.1) + 
+        labs(title = "Distribución de la edad  del jefe de familia por cluster", x = "cluster", y = "edad") + 
+          scale_fill_discrete(name = "cluster")
+
+p4 
+```
+
+## Exploración de las caracteristicas económico-financieras por clúster
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+descriptive_economicas_ward<-segment_customers_ward%>%
+              select("ing_cor","gasto_mon","vivienda","cluster") %>%
+                group_by(cluster)%>%
+                  summarise(mean_ing = mean(ing_cor),sd_ing = sd(ing_cor), median_ing = median(ing_cor),min_ing = min(ing_cor),max_ing = max(ing_cor),mean_gast = mean(gasto_mon),sd_gas = sd(gasto_mon),median_gas = median(gasto_mon),min_gas = min(gasto_mon),max_gas = max(gasto_mon),mean_viv = mean(vivienda),sd_viv = sd(vivienda),median_viv = median(vivienda),min_viv = min(vivienda),max_viv = max(vivienda))
+
+datatable(as.data.frame(descriptive_economicas_ward),colnames = c("Clúster","Promedio de ingreso","Desviación estandard ingreso","Mediana del ingreso","Ingreso Minimo","Ingreso Maximo","Promedio del gasto","Desviación estandard gasto","Mediana del gasto","Gasto Minimo","Gasto Maximo","Promedio del gasto en vivienda","Desviación estandard vivienda","Mediana del gasto en vivienda","Gasto en vivienda Minimo","Gasto en vivienda Maximo"),caption = "Tabla 3.2 Estadística descriptiva de las variables económico-financieras",rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE) )
+```
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+
+p5<-ggplot(segment_customers_ward,aes(x = factor(cluster), y = log(ing_cor))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del ingreso", x = "cluster", y = "logaritmo del ingreso")
+
+p5   
+```
+
+```{r,echo = FALSE,warning = FALSE,cache= TRUE,error=FALSE}
+p6<-ggplot(segment_customers_ward,aes(x = factor(cluster), y = log(gasto_mon))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del gasto", x = "clúster", y = "logaritmo del gasto")
+
+p6  
+
+```
+
+```{r,echo = FALSE,warning=FALSE,cache= TRUE,error=FALSE}
+p7<-ggplot(segment_customers_ward,aes(x = factor(cluster), y = log(vivienda))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del gasto en vivienda", x = "cluster", y = "logaritmo del gasto en vivienda")
+
+p7   
+
+```
+
+## Exploración de las características de la vivienda por clúster
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+descriptive_viv_ward<-segment_customers_ward%>%
+                  select("cluster",vivi[-1])%>%
+                    group_by(cluster)%>%
+                      summarise(moda_tipo_viv = Mode(tipo_viv),mean_antig = mean(antiguedad),sd_antig = sd(antiguedad),median_antig = median(antiguedad),moda_antig = Mode(antiguedad), mean_cuartos = mean(num_cuarto),sd_cuartos = sd(num_cuarto),median_cuartos = median(num_cuarto),moda_cuarto = Mode(num_cuarto),mean_dorm = mean(cuart_dorm),sd_dorm = sd(cuart_dorm), median_dorm = median(cuart_dorm),moda_dorm = Mode(cuart_dorm) ,mean_bano = mean(bano_comp), sd_bano = sd(bano_comp),median_bano = median(bano_comp),moda_bano = Mode(bano_comp),cocina = Mode(cocina),moda_tenencia = Mode(tenencia) ,moda_pared = Mode(mat_pared), moda_piso = Mode(mat_pisos),moda_combus = Mode(combustible), moda_elect = Mode(disp_elect))
+
+datatable(as.data.frame(descriptive_viv_ward),colnames = c("Clúster","Moda del tipo de vivienda","Promedio de antiguedad","Desviación estandard antiguedad","Mediana de la antiguedad","Moda de la antiguedad","Promedio del numero de cuartos","Desviación estandard del número de cuartos","Mediana del número de cuartos","Moda del número de cuartos","Promedio del número de dormitorios","Desviación estándard del número de dormitorios","Mediana del número de dormitorios","Moda del número de dormitorios","Media del número de baños","Desviación estándard del número de baños","Mediana del número de baños","Moda del número de baños","Tenencia de cocina","Moda del tipo de tenencia de vivienda","Moda del tipo de pared","Moda del tipo de piso","Moda del combustible de la casa","Moda de la disponibilidad eléctrica"),caption = "Tabla 3.1 Estadística descriptiva de las variables de vivienda",rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE) )
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p8<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(tipo_viv))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del tipo de vivienda por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Tipo",labels = c("Otro","Casa independiente","Departamento en edificio","Vivienda en edificio","Vivienda en azotea","local no construido para habitacion"))
+  
+p8  
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p9<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(tenencia))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del tipo de tenencia por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Tenencia", labels = c("Rentada","Prestada","Propia pero pagandola","Propia","Intestada o en litigio","Otra situacion"))
+
+p9   
+  
+```
+
+```{r,echo=FALSE,warning=FALSE,cache=TRUE,error=FALSE}
+p10<-ggplot(segment_customers_ward,aes(x =  factor(cluster), y = log(antiguedad))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparaciones de las distribuciones de la antiguedad de la vivienda", x= "clúster", y = "logaritmo de la antiguedad")
+
+p10    
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p11<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(cuart_dorm))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del número de dormitorios por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+p11   
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p12<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(num_cuarto))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del número de cuartos por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+p12
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p13<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(bano_comp))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Número de baños completos por clúster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+p13
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p14<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(cocina))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Disponibilidad de cocina", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Disponibilidad",labels =  c("si","no"))  
+        
+p14 
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+p15<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(mat_pared))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Tipo de material de pared", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Material",labels = c("Material de deshecho","Lamina de cartón","Lamina de asbesto o metálica","Carrizo, bambú o palma","Embarro o bajareque","Madera","Adobe","Tabique,Ladrillo,Block,Piedra,Cantera o Cemento")) 
+  
+p15  
+
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE,error=FALSE}
+p16<-ggplot(segment_customers_ward,aes(x = factor(cluster), fill = factor(combustible))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Tipo de combustible principal para los servicios de la vivienda", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Combustible",labels = c("Leña","Carbon","Gas de Tanque","Gas en tubería","Electricidad","Otro"))
+  
+p16    
+
+
+```
+
+## Conclusiones del agrupamiento por medio de un modelo jerárquico
+
+### Grupo 1
+
+ * El clúster contiene 5963 miembros 
+ * El sexo del jefe de familia más común es masculino.
+ * El nivel educativo más común es el de primaria incompleta, seguido muy de cerca por secundaria completa.
+ * El número de integrantes de la familia más común es de dos integrantes.
+ * La edad del jefe de familia más común es de 40 años. 
+ * La mediana del ingreso mensual es de $6,965 mensuales.
+ * La mediana del gasto es de $4,301 mensuales.
+ * La mediana del gasto en vivienda es de $900 mensuales.
+ * El tipo de vivienda de una persona perteneciente a este clúster es el de una casa independiente.
+ * La vivienda es propia.
+ * La mediana de la antiguedad de la vivienda es de 18 años 
+ *Es una vivienda de 3 cuartos. 
+ * La casa tiene dos dormitorios.
+ * Un baño completo.
+ * El piso es de cemento
+ * Las paredes de la casa son de Tabique, Ladrillo, block, piedra, cantera,cemento o concreto
+ * El combustible mas utilizado para los servicios del hogar es el gas en tanque. 
+ * La casa dispone de luz eléctrica. 
+ 
+
+### Grupo 2 
+ 
+ * El clúster contiene 3641 miembros.
+ * El sexo del jefe de familia más común es masculino
+ * El nivel educativo más común es secundaria completa.
+ * El número de integrantes de la familia más común es de cuatro integrantes.
+ * La edad del jefe de familia más común es de 42 años. 
+ * La mediana del ingreso mensual es de $13538.42 mensuales.
+ * La mediana del gasto es de $9,138 mensuales.
+ * La mediana del gasto en vivienda es de $1,683.85 mensuales.
+ * El tipo de vivienda de una persona perteneciente a este clúster es el de una casa independiente.
+ * La vivienda es propia.
+ * La mediana de la antiguedad de la vivienda es de 15 años 
+ *La mediana de los cuartos de la vivienda es de 4 cuartos. 
+ * La casa tiene dos dormitorios.
+ * Un baño completo.
+ * El piso es madera, mosaico u otro recumbrimiento.
+ * Las paredes de la casa son de Tabique, Ladrillo, block, piedra, cantera,cemento o concreto
+ * El combustible mas utilizado para los servicios del hogar es el gas en tanque. 
+ * La casa dispone de luz eléctrica. 
+ 
+ 
+### Grupo 3
+ 
+ * El grupo contiene 1352 miembros 
+ * El sexo del jefe de familia más común es masculino
+ * El nivel educativo más común es profesional completa, seguido muy de serca de secundaria completa. 
+ * El número de integrantes de la familia más común es de cuatro integrantes.
+ * La edad del jefe de familia más común es de 45 años. 
+ * La mediana del ingreso mensual es de $23,927.41 mensuales.
+ * La mediana del gasto es de $17,285.11 mensuales.
+ * La mediana del gasto en vivienda es de $2696.445 mensuales.
+ * El tipo de vivienda de una persona perteneciente a este clúster es el de una casa independiente.
+ * La vivienda es propia.
+ * La mediana de la antiguedad de la vivienda es de 20 años 
+ *La mediana de los cuartos de la vivienda es de 5 cuartos. 
+ * La casa tiene tres dormitorios.
+ * El promedio de baños completos es de 2.
+ * El piso es madera, mosaico u otro recumbrimiento.
+ * Las paredes de la casa son de Tabique, Ladrillo, block, piedra, cantera,cemento o concreto
+ * El combustible mas utilizado para los servicios del hogar es el gas en tanque. 
+ * La casa dispone de luz eléctrica. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+

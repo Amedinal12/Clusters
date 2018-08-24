@@ -1,0 +1,33 @@
+Numero,Tabla,Variable,Etiqueta,Unidades
+1,CONCENTRADO_HOGAR,folioviv,Folio de la vivienda,numerica
+11,CONCENTRADO_HOGAR,sexo_jefe,Sexo del jefe de familia,categorica con niveles 0 o 1
+12,CONCENTRADO_HOGAR,edad_jefe,Edad del jefe de familia,numerica
+13,CONCENTRADO_HOGAR,educa_jefe,Educacion formal del jefe de familia,categorica con niveles de 1 a 11
+14,CONCENTRADO_HOGAR,tot_integ,Numero de integrantes del hogar,numerica
+24,CONCENTRADO_HOGAR,ing_cor,Ingreso trimestral de la unidad de observacion,numerica
+58,CONCENTRADO_HOGAR,gasto_mon,Gasto trimestral de la unidad de observacion,numerica
+80,CONCENTRADO_HOGAR,vivienda,Gasto mensual en vivienda,numerica
+117,CONCENTRADO_HOGAR,cuota_viv,Cuota por vivienda,numerica
+118,CONCENTRADO_HOGAR,mater_serv,Gasto en servicios y materiales para el hogar por el seno familiar de forma trimestral,numerica
+59,CONCENTRADO_HOGAR,alimentos,Gasto en alimentos consumidos por el seno familiar  de forma trimestral,numerica
+77,CONCENTRADO_HOGAR,vesti_calz,Gasto en vestido y calzado por el seno familiar  de forma trimestral,numerica
+84,CONCENTRADO_HOGAR,energia,Gasto en energ¡a por el seno familiar  de forma trimestral,numerica
+85,CONCENTRADO_HOGAR,limpieza,Gasto en servicios de limpieza por el seno familiar de forma trimestral,numerica
+86,CONCENTRADO_HOGAR,cuidados,Gasto en cuidados de la casa por el seno familiar  de forma trimestral,numerica
+89,CONCENTRADO_HOGAR,salud,Gasto en servicios de salud por el seno familiar de forma trimestral,numerica
+93,CONCENTRADO_HOGAR,transporte,Gasto en servicios de transporte por el seno familiar  de forma trimestral,numerica
+100,CONCENTRADO_HOGAR,comunica,Gasto en telecomunicaciones por el seno familiar de forma trimestral,numerica
+102,CONCENTRADO_HOGAR,educacion,Gasto en servicios educativos por el seno familiar de forma trimestral,numerica
+103,CONCENTRADO_HOGAR,esparci,Gasto en servicios de esparcimiento por el seno familiar de forma trimestral,numerica
+105,CONCENTRADO_HOGAR,personales,Gasto en servicios de cuidado personal por el seno familiar de forma trimestral,numerica
+2,VIVIENDA,tipo_viv,Tipo de vivienda,categorica con niveles de 1 a 6
+6,VIVIENDA,antiguedad,Antiguedad de vivienda,numerica
+8,VIVIENDA,cocina,Disponibilidad de cocina en la vivienda,categorica con niveles de 1 a 2
+10,VIVIENDA,cuarto_dorm,Numero de dormitorios en la vivienda,numerica
+11,VIVIENDA,num_cuart,Numero de cuartos disponibles en la vivienda,numerica
+28,VIVIENDA,tenencia,Tipo de tenencia de la casa,categorica con niveles de 1 a 6
+18,VIVIENDA,bano_comp,Numero de banos completos en la vivienda,numerica
+3,VIVIENDA,mat_pared,Material predominante de las paredes de la viviedna,categorica con niveles de 1 a 8
+5,VIVIENDA,mat_pisos,Material predominante de los pisos de la vivienda,categorica con niveles de 1 a 3 
+22,VIVIENDA,disp_elect,Disponibilidad de energia electrica en la vivienda,categorica con niveles de 1 a 2
+25,VIVIENDA,combustible,Tipo de combustible principal para la vivienda,categorica con niveles de  1 a 6

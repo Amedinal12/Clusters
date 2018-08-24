@@ -1,0 +1,339 @@
+
+```{r,echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE,error=FALSE,include = FALSE}
+library("purrr")
+```
+
+# Clústers por el metodo de  Particiones alrededor de medioides
+
+Las particiones alrededor de mediodes,son una clase de algoritmos a los cuales se le suplementa el número de particiones. 
+
+El objetivo general de este procedimiento es el de minimizar la distancia que agregada resultante de añadir un punto a un grupo. Esto se logra añadiendo el punto que tenga distancia minima a otro punto del grupo, este último es denominado el centro de dicho grupo. 
+
+Dado que el proceso requiere que se le provean de antemano el número de grupos que debe asignar, existen dos enfoques sobre como proceder al respecto : 
+
+* Enfoque externo : Es en el cual, existen consideraciones externas a los datos, dadas por el contexto del experimento, es decir, dado que estamos explorando la situación "x", podemos crear "k" número de grupos. 
+
+* Enfoque interno: En esta vertiente, son los datos quienes nos aproximan al número de aglomeraciones que debemos definir. 
+
+El enfoque que utilicé es el interno, de allí que se presenta la gráfica de silueta promedio por número de grupos en el modelo
+
+
+## Estimación del número de grupo por el método de las silueta promedio
+
+```{r,echo = FALSE,cache= TRUE,error=FALSE}
+sil_width<-map(2:10,function(k){
+  model<-pam(x = matriz_distancia,k = k,diss = TRUE)
+  model$silinfo$avg.width
+})
+
+sil_width<-unlist(sil_width)
+sil_df<-data.frame(k=2:10,sil_width = sil_width)
+
+```
+
+
+```{r,echo=FALSE,cache=TRUE,cache=TRUE,error=FALSE}
+s<-ggplot(sil_df,aes(x = k, y = sil_width)) + 
+  geom_line() + 
+    scale_x_discrete(limits = 2:10) + 
+    labs(title = "Grosor de Silueta Promedio", x = "numero de clusters", y = "Promedio de Silueta") + 
+  geom_point(aes(x = k, y = sil_width,color = "red")) 
+
+
+s
+```
+
+La silueta es un método de interpretación y validación de la consistencia dentro de los clústers. 
+
+La figura anterior nos presenta una idea gráfica sobre que tan bien asignado se encuentra un objeto dentro de su propio grupo. 
+
+El valor de la silueta es un número entre -1 y 1, el cual es interpretado como una medida de cohesion. De tal forma que un valor cercano a 1, nos indica que los objetos se encuentrar bien agrupados (que presentan homegeneidad entre si, y heterogeneidad con el resto de las agrupaciones).
+
+El valor de la silueta se define matemáticamente con la siguiente expresión: 
+$$ \ s(i) =\frac{\ b(i) - \ a(i)}{max \{ \ a(i), \ b(i) \}}   $$
+Dónde : 
+
+ $\ a(i)$ es la distancia promedio entre i y el resto de las observaciones dentro del clúster
+ 
+$\ b(i)$ es la máxima distancia promedio entre i y todos los puntos de cualquier otro clúster al que no pertenezca la observación i. 
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+kc_customers<-pam(matriz_distancia, metric = "euclidean",k  = 2,diss = TRUE)
+cluster_k<-kc_customers$clustering
+segment_customers_pam<-mutate(datos2, cluster = cluster_k)
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+
+tablaclust_pam<-count(segment_customers_pam,cluster)
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+kable(tablaclust_pam,caption = "Tabla 3.0 Clústers inducidos por las particiones alrededor de medioides")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+clusplot(datos2,cluster_k,main = "Representacion en 2D de la solucion de clusters",color = TRUE, shade = TRUE,labels = 4, lines = 0, cex = 0)
+
+```
+
+Esta imagen de la representación gráfica de las componentes principales de los grupos, de nuevo explica cerca del 30% de la variabilidad de los puntos, por lo que nuestro análisis de mayores dimensiones es el apropiado tambien en este caso. 
+
+## Exploración de las características socio-demográficas por clúster
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+descriptive_socio_pam<-segment_customers_pam%>%
+                    select("cluster",socios[-1])%>%
+                      group_by(cluster)%>%
+                        summarise(moda_sexo = Mode(sexo_jefe), moda_educ = Mode(educa_jefe), mean_edad = mean(edad_jefe), sd_edad = sd(edad_jefe), median_edad = median(edad_jefe),moda_edad = Mode(edad_jefe),mean_integ = mean(tot_integ),sd_integ = sd(tot_integ),median_integ = median(tot_integ),moda_integ = Mode(tot_integ))
+
+datatable(as.data.frame(descriptive_socio_pam),colnames = c("Clúster","Moda en sexo","Moda en educación","Promedio de edad","Desviación estandard edad","Mediana de la edad","Moda de la edad","Promedio de integrantes","Desviación estandard de integrantes","Mediana de integrantes","Moda de integrantes"),caption = "Tabla 4.1 Estadística descriptiva de las variables socio-demográficas",rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE ))
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+
+q1<-ggplot(segment_customers_pam,aes(x = factor(cluster) ,fill = (sexo_jefe))) + 
+  geom_bar(colour="black",position = "dodge")  + 
+    labs(title = "Sexo del jefe de familia por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Sexo",labels = c("Mujer","Hombre")) 
+
+    
+q1   
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q2<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = educa_jefe)) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Nivel educativo del jefe de familia por cluster", x = "cluster", y = "ocurrencias") +
+      scale_fill_discrete(name = "Nivel",labels = c("sin instruccion","preescolar","primaria incompleta","primaria completa","secundaria incompleta","secundaria completa","preparatoria incompleta","preparatoria completa","profesional incompleta","profesional completa","posgrado")) 
+
+
+
+q2  
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+
+q3<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(tot_integ))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Número de integrantes del hogar por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Integrantes")
+
+q3   
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE} 
+q4<-ggplot(segment_customers_pam,aes(x = factor(cluster), y = edad_jefe)) + 
+   geom_violin(alpha = 0.3) + 
+      geom_boxplot(width = 0.1) + 
+        labs(title = "Distribución de la edad  del jefe de familia por cluster", x = "cluster", y = "edad") + 
+          scale_fill_discrete(name = "cluster")
+
+q4  
+
+```
+
+## Exploración de las características económico-financieras por clúster
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+descriptive_economicas_pam<-segment_customers_pam%>%
+              select("ing_cor","gasto_mon","vivienda","cluster") %>%
+                group_by(cluster)%>%
+                  summarise(mean_ing = mean(ing_cor),sd_ing = sd(ing_cor), median_ing = median(ing_cor),min_ing = min(ing_cor),max_ing = max(ing_cor),mean_gast = mean(gasto_mon),sd_gas = sd(gasto_mon),median_gas = median(gasto_mon),min_gas = min(gasto_mon),max_gas = max(gasto_mon),mean_viv = mean(vivienda),sd_viv = sd(vivienda),median_viv = median(vivienda),min_viv = min(vivienda),max_viv = max(vivienda))
+
+datatable(as.data.frame(descriptive_economicas_pam),caption = "Tabla 4.2 Estadística descriptiva de las variables económico-financieras",colnames = c("Clúster","Promedio de ingreso","Desviación estandard ingreso","Mediana del ingreso","Ingreso Minimo","Ingreso Maximo","Promedio del gasto","Desviación estandard gasto","Mediana del gasto","Gasto Minimo","Gasto Maximo","Promedio del gasto en vivienda","Desviación estandard vivienda","Mediana del gasto en vivienda","Gasto en vivienda Minimo","Gasto en vivienda Maximo"),rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE))
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+
+q5<-ggplot(segment_customers_pam,aes(x = factor(cluster), y = log(ing_cor))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del ingreso", x = "cluster", y = "logaritmo del ingreso")
+
+q5  
+
+```
+
+```{r,echo=FALSE,warning=FALSE,cache=TRUE,error=FALSE}
+q6<-ggplot(segment_customers_pam,aes(x = factor(cluster), y = log(gasto_mon))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del gasto", x = "cluster", y = "logaritmo del gasto")
+
+q6    
+
+```
+
+```{r,echo=FALSE,warning=FALSE,cache= TRUE,error=FALSE}
+q7<-ggplot(segment_customers_pam,aes(x = factor(cluster), y = log(vivienda))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparación de las distribuciones de los logaritmos del gasto en vivienda", x = "cluster", y = "logaritmo del gasto en vivienda")
+
+q7   
+
+```
+
+## Exploración de las características de la vivienda por clúster
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+descriptive_viv_pam<-segment_customers_pam%>%
+                  select("cluster",vivi[-1])%>%
+                    group_by(cluster)%>%
+                      summarise(moda_tipo_viv = Mode(tipo_viv),mean_antig = mean(antiguedad),sd_antig = sd(antiguedad),median_antig = median(antiguedad),moda_antig = Mode(antiguedad), mean_cuartos = mean(num_cuarto),sd_cuartos = sd(num_cuarto),median_cuartos = median(num_cuarto),moda_cuarto = Mode(num_cuarto),mean_dorm = mean(cuart_dorm),sd_dorm = sd(cuart_dorm), median_dorm = median(cuart_dorm),moda_dorm = Mode(cuart_dorm) ,mean_bano = mean(bano_comp), sd_bano = sd(bano_comp),median_bano = median(bano_comp),moda_bano = Mode(bano_comp),cocina = Mode(cocina),moda_tenencia = Mode(tenencia) ,moda_pared = Mode(mat_pared), moda_piso = Mode(mat_pisos),moda_combus = Mode(combustible), moda_elect = Mode(disp_elect))
+
+datatable(as.data.frame(descriptive_viv_pam),colnames = c("Clúster","Moda del tipo de vivienda","Promedio de antiguedad","Desviación estandard antiguedad","Mediana de la antiguedad","Moda de la antiguedad","Promedio del numero de cuartos","Desviación estandard del número de cuartos","Mediana del número de cuartos","Moda del número de cuartos","Promedio del número de dormitorios","Desviación estándard del número de dormitorios","Mediana del número de dormitorios","Moda del número de dormitorios","Media del número de baños","Desviación estándard del número de baños","Mediana del número de baños","Moda del número de baños","Tenencia de cocina","Moda del tipo de tenencia de vivienda","Moda del tipo de pared","Moda del tipo de piso","Moda del combustible de la casa","Moda de la disponibilidad eléctrica"),caption = "Tabla 4.3 Estadística descriptiva de las variables de vivienda",rownames = FALSE,options = list(dom = 't',
+    scrollX = TRUE))
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q8<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(tipo_viv))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del tipo de vivienda por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Tipo",labels = c("Otro","Casa independiente","Departamento en edificio","Vivienda en edificio","Vivienda en azotea","local no construido para habitacion"))
+  
+  
+q8    
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q9<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(tenencia))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del tipo de tenencia por cluster", x = "cluster", y = "ocurrencias")  + 
+      scale_fill_discrete(name = "Tenencia", labels = c("Rentada","Prestada","Propia pero pagandola","Propia","Intestada o en litigio","Otra situacion"))
+
+q9   
+
+
+```
+
+```{r,echo=FALSE,warning=FALSE,cache=TRUE,error=FALSE}
+q10<-ggplot(segment_customers_pam,aes(x =  factor(cluster), y = log(antiguedad))) + 
+  geom_violin(alpha = 0.3) + 
+    geom_boxplot(width = 0.1) + 
+      labs(title = "Comparaciones de las distribuciones de la antiguedad de la vivienda", x= "cluster", y = "logaritmo de la antiguedad")
+
+q10   
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q11<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(cuart_dorm))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del número de dormitorios por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+
+q11
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q12<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(num_cuarto))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Conteo del número de cuartos por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+q12  
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q13<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(bano_comp))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Número de baños completos por cluster", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Número")
+  
+q13    
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q14<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(cocina))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Disponibilidad de cocina", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Disponibilidad",labels =  c("si","no")) 
+       
+q14   
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q15<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(mat_pared))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Tipo de material de pared", x = "cluster", y = "ocurrencias") + 
+      scale_fill_discrete(name = "Material",labels = c("Material de deshecho","Lamina de cartón","Lamina de asbesto o metálica","Carrizo, bambú o palma","Embarro o bajareque","Madera","Adobe","Tabique,Ladrillo,Block,Piedra,Cantera o Cemento")) 
+
+q15   
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+q16<-ggplot(segment_customers_pam,aes(x = factor(cluster), fill = factor(combustible))) + 
+  geom_bar(colour="black",position = "dodge") + 
+    labs(title = "Tipo de combustible principal para los servicios de la vivienda", x = "cluster", y = "ocurrencias")+ 
+      scale_fill_discrete(name = "Combustible",labels = c("Leña","Carbon","Gas de Tanque","Gas en tubería","Electricidad","Otro"))
+  
+q16    
+
+```
+
+## Conclusiones del agrupamiento por medio de particiones alrededor de medioides
+
+### Grupo 1 
+
+* El grupo contiene 7167 miembros
+* El sexo del jefe de familia más común es masculino
+* La edad más común es de 40 años
+La mayoría de las familias se compone de 2 integrantes
+* La mediana del ingreso es de $7457.596 mensuales
+* La mediana del gasto es de $4691.056 mensuales
+* La mediana del gasto en vivienda es de $973.05 mensuales
+* La mayoría de las familias de este grupo vive en casa independiente
+* La mediana de la antigüedad de la vivienda es de 16 años
+* La mayoria de las viviendas son de categoría propia
+* La mayoría de estas viviendas es de 3 cuartos y dos dormitorios
+* La mayoría de estas viviendas tiene un baño completo, aunque seguido de cerca por viviendas sin baño completo
+* Dispone de cocina
+* El piso es de cemento o firme
+* Las paredes son de Tabique, Ladrillo, block, piedra, cantera, cemento o concreto
+* Los servicios del hogar son impulsados por gas de tanque
+* Dispone de luz eléctrica
+
+### Grupo 2
+
+* El grupo contiene 3789 miembros
+* El sexo del jefe de familia más común es masculino
+* El nivel educativo más común es el de secundaria completa
+* La edad más común es de 46 años
+* El número de integrantes más común es de 4
+* La mediana del ingreso es de $18,109.746 mensuales
+* La mediana del gasto es de $36138.35 mensuales
+* La mediana del gasto en vivienda es de $2085
+* El tipo de vivienda más común es de casa independiente
+* La vivienda pertenece a la categoría de propia
+* La mediana de la antigüedad de la vivienda es de 17 años
+* El número de habitaciones más común 4
+* El número de dormitorios más común es de 2
+* El número más común de baños completos es de 1
+* La mayoría de las viviendas cuentan con cocina
+* Las paredes son de Tabique, Ladrillo, block, piedra, cantera, cemento o concreto
+La mayoría de estas viviendas utilizan gas de tanque para sus servicios
+
+
+
+
+
+
+
+
+
+

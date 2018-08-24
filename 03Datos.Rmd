@@ -1,0 +1,183 @@
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,error=FALSE,include = FALSE}
+install.packages("readr",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("ggplot2",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("dplyr",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("dummies",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("shiny",repos = "http://cran.us.r-project.org",type = "binary")
+install.packages("DT",repos = "http://cran.us.r-project.org",dependencies = FALSE)
+install.packages("formattable",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+install.packages("kableExtra",repos = "http://cran.us.r-project.org",dependencies = TRUE)
+library("readr")
+library("ggplot2")
+library("dplyr")
+library("dummies")
+library("formattable")
+library("DT")
+library("kableExtra")
+library("knitr")
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,cache=TRUE,error=FALSE}
+concentrado_hogar<-read_csv("concentradohogar.csv",col_names = TRUE)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,cache= TRUE,error=FALSE}
+viviendas<-read_csv("viviendas.csv", col_names = TRUE)
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+socios<-c("folioviv","sexo_jefe","educa_jefe","edad_jefe","tot_integ")
+datos_socio<-concentrado_hogar%>%
+              select(socios)
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+consumo<-c("folioviv","ing_cor","gasto_mon","vivienda","cuota_viv","mater_serv","alimentos","vesti_calz","energia","limpieza","cuidados","salud","transporte","comunica","educacion","esparci","personales")
+
+datos_consumo<- concentrado_hogar%>%
+          select(consumo)
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+vivi<-c("folioviv","tipo_viv","antiguedad","cocina","cuart_dorm","num_cuarto","tenencia","bano_comp","mat_pared","mat_pisos","disp_elect","combustible")
+datos_vivienda<- viviendas %>%
+                  select(vivi)
+
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+datos_socio$folioviv<-as.numeric(datos_consumo$folioviv)
+datos_consumo$folioviv<-as.numeric(datos_consumo$folioviv)
+datos<-datos_socio%>%
+        left_join(datos_consumo,by = "folioviv")%>%
+          left_join(datos_vivienda, by = "folioviv")
+```
+
+```{r,echo=FALSE,cache=TRUE,error=FALSE}
+datos$sexo_jefe[datos$sexo_jefe==2]<-0
+datos$educa_jefe<-as.factor(datos$educa_jefe)
+datos$sexo_jefe<-as.factor(datos$sexo_jefe)
+datos$tipo_viv<-as.factor(datos$tipo_viv)
+datos$tenencia<-as.factor(datos$tenencia)
+datos$mat_pared<-as.factor(datos$mat_pared)
+datos$mat_pisos<-as.factor(datos$mat_pisos)
+datos$cocina<-as.factor(datos$cocina)
+datos$disp_elect<-as.factor(datos$disp_elect)
+datos<-datos[,-1]
+```
+
+```{r,echo=FALSE,cache= TRUE,error=FALSE}
+set.seed(1)
+n<-nrow(datos)
+n_muest<-20000
+indices<- sample(n,n_muest,replace = FALSE) 
+datos2<-datos[indices,]
+datos2<-na.omit(datos2)
+n_muest_limp<-nrow(datos2)
+```
+
+# Datos
+
+Los datos utilizados en este proyecto son los proporcionados por la Encuesta Nacional Ingresos y Gastos de los hogares en su edición 2016 (ENIGH 2016). 
+El objetivo de esta encuesta es el de proporcionar un panorama estadístico del comportamiento de los ingresos y gastos de los hogares en cuanto a su monto, procedencia y distribución, adicionalmente la encuesta ofrece caracteristicas ocupacionales y socio demográficas de la infraestructura de la vivienda y el equipamiento del hogar. 
+
+El periodo de levantamiento de la encuesta fue del 21 de Agosto del 2016 al 28 de noviembre del 2016. La cobertura geografica de la encuesta es a nivel nacional.
+
+Para conformar la base de datos de la investigacion utilice el archivo concentradohogar.csv y el archivo viviendas.csv que se encuentra disponible en la pestaña de microdatos en el sitio web de la [ENIGH](http://www.beta.inegi.org.mx/proyectos/enchogares/regulares/enigh/nc/2016/)
+
+## Descripción de las variables
+
+A continuación, presento una tabla de las variables que conforman la base de datos utilizada en este análisis, el número significa la columna en la que se encuentran en el archivo,el archivo en el que se encuentran, su nombre, su etiqueta, su categoria (si es numérica o categórica) y en caso de ser categórica el número de niveles que la conforman, acto seguido, presento varias tablas que contienen los niveles de las variables categóricas incluidas en el estudio.
+El archivo se compone de 70,311 unidades observacionales, de las cuales seleccioné 10,596 mediante un muestreo aleatorio.
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+tabla_variables<-read_csv("tabla_variables.csv",col_names = TRUE)
+sexo_jefe_var<-read_csv("sexo_jefe_var.csv")
+educa_jefe_var<-read_csv("educa_jefe_var.csv")
+tipo_viv<-read_csv("tipo_viv.csv")
+cocina<-read_csv("cocina.csv")
+tenencia<-read_csv("tenencia.csv")
+mat_pared<-read_csv("mat_pared.csv")
+mat_pisos<-read_csv("mat_pisos.csv")
+disp_elect<-read_csv("disp_elect.csv")
+combustible<-read_csv("combustible.csv")
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(tabla_variables,caption="Tabla de las variables utilizadas en el estudio" )%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(sexo_jefe_var,caption = "niveles de la variable categorica sexo del jefe de familia.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(educa_jefe_var,caption = "niveles de la variable categorica del nivel de educación formal del jefe de familia.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(tipo_viv,caption = "niveles de la variable categorica  del tipo de vivienda.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(cocina,caption = "niveles de la variable categorica de la disponibilidad de cocina.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(tenencia,caption = "niveles de la variable categorica del tipo de tenencia.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+
+kable(mat_pared,caption = " niveles de la variable categorica del material de las paredes.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(mat_pisos,caption = " niveles de la variable categorica del material de los pisos.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(disp_elect,caption = " niveles de la variable categorica de la disponibilidad de energía eléctrica.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+
+```
+
+
+
+```{r,echo = FALSE,cache=TRUE,error=FALSE,warning=FALSE,message=FALSE}
+kable(combustible,caption = " niveles de la variable categorica del tipo de combustible principal.")%>%
+  kable_styling(bootstrap_options = c("striped","hover","responsive"))
+```
+
+

@@ -1,0 +1,41 @@
+--- 
+title: "Análisis de clúster aplicado en la segmentación del mercado para la tipificación de los productos de vivienda: El caso de México"
+author: "Act. Andres Antonio Medina Landeros"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+output: bookdown::gitbook
+df_print: paged 
+documentclass: book
+bibliography: [book.bib, packages.bib]
+biblio-style: apalike
+link-citations: yes
+github-repo: rstudio/bookdown-demo
+description: "Analisis de cluster por el metodo jeráquico, y por el método de particiones alrededor de medioides aplicado en la segmentacion de mercado para tipificar la forma de vivienda actual de las observaciones pertenecientes a cada cluster"
+---
+
+```{r eval=FALSE,echo = FALSE,include = FALSE}
+install.packages("bookdown",repos = "http://cran.us.r-project.org")
+library("bookdown")
+```
+
+```{r include=FALSE,echo = FALSE,error=FALSE}
+# automatically create a bib database for R packages
+knitr::write_bib(c(
+  .packages(), 'bookdown', 'knitr', 'rmarkdown'
+), 'packages.bib')
+```
+
+# Abstracto
+
+El objetivo de este estudio es el de realizar una segmentación de mercado basada en los hábitos de consumo de bienes normales de una muestra aleatoria de casi once mil unidades observacionales dentro de la República mexicana, esto para explorar las características socio-demográficas, económico-financieras, y las características de de la vivienda. 
+
+Las técnicas utilizadas en el estudio son las de Clústers Jerárquicos y el de particiones alrededor de medioides, las cuales son técnicas provenientes del aprendizaje de máquina no supervisado. 
+
+Por el método de particiones alrededor de medioides el modelo con mejores métricas de separación es el de dos clústers. En los modelos jerárquicos se decidió que se construyeran tres aglomeraciones. 
+
+Los resultados de la estadística descriptiva de cada grupo de variables se encuentran en sus respectivas secciones. 
+
+
+
+
+

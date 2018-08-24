@@ -1,0 +1,10 @@
+# Introducción
+
+La técnica de análisis de cluster ,análisis de conglomerados o segmentación de datos consiste en clasificar a los individuos en estudio formando grupos o conglomerados de elementos, tales que los elementos de cada conglomerado presenten cierto grado de homogeneidad con base en los valores adoptados sobre un conjunto de variables. 
+
+El análisis de clusters tambien es utilizado pra formar estadísticas descriptivas para poner a prueba la hipótesis de que, dentro de los datos existen aglomeraciones naturales de distintos subgrupos. 
+
+Cada grupo acumula objetos con propiedades suficientemente distintas. Para esto último
+es necesario introducir dos ideas clave, la del individuo (u objeto) que puede ser definida como un conjunto de mediciones de las variables que componen el estudio y la noción de similitud (o más bien dicho, de disimilitud) entre objetos la cual será la idea de distancia, es decir diremos que un objeto es más parecido a otro mientras más cerca esten. 
+
+Cualquier método de agrupamiento intentará realizar la tarea asignada basado en la noción de distancia que le sea provista, la cuál dependerá de consideraciones fuera de los mismos datos (Es decir, si los datos provienen de un estudio médico, o económico requeriría distintas nociones de distancia según sea el caso). 
